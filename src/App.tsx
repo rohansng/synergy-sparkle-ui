@@ -10,6 +10,7 @@ import TaskDetail from "./pages/TaskDetail";
 import CreateTask from "./pages/CreateTask";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -21,11 +22,31 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/project/:projectId" element={<ProjectDetail />} />
-          <Route path="/project/:projectId/task/:taskId" element={<TaskDetail />} />
-          <Route path="/project/:projectId/create-task" element={<CreateTask />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/project/:projectId" element={
+            <ProtectedRoute>
+              <ProjectDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/project/:projectId/task/:taskId" element={
+            <ProtectedRoute>
+              <TaskDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/project/:projectId/create-task" element={
+            <ProtectedRoute>
+              <CreateTask />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

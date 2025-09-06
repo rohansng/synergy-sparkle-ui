@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Logo } from "@/components/SynergySphere/Logo";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,28 +18,55 @@ const Login = () => {
   const [name, setName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signUp, signIn } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      let result;
+      
+      if (isSignUp) {
+        result = await signUp(email, password, name);
+        if (!result.error) {
+          toast({
+            title: "Account created!",
+            description: "Please check your email to verify your account.",
+          });
+        }
+      } else {
+        result = await signIn(email, password);
+        if (!result.error) {
+          toast({
+            title: "Welcome back!",
+            description: "You've been logged in successfully.",
+          });
+        }
+      }
 
-    // Mock authentication - always succeeds
-    localStorage.setItem("user", JSON.stringify({
-      id: "1",
-      name: isSignUp ? name : "John Doe",
-      email: email
-    }));
-
-    toast({
-      title: isSignUp ? "Account created!" : "Welcome back!",
-      description: isSignUp ? "Your account has been created successfully." : "You've been logged in successfully.",
-    });
-
-    setIsLoading(false);
-    navigate("/dashboard");
+      if (result.error) {
+        toast({
+          title: "Authentication Error",
+          description: result.error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

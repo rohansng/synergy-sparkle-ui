@@ -8,12 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Bell, Mail, MessageSquare, User, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
+  const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   
   // Profile settings
   const [name, setName] = useState("");
@@ -30,34 +33,56 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      setName(parsedUser.name);
-      setEmail(parsedUser.email);
-    } else {
+    if (!user) {
       navigate("/");
+      return;
     }
-  }, [navigate]);
+
+    const fetchProfile = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data) {
+        setProfile(data);
+        setName(data.full_name || "");
+      }
+      setEmail(user.email || "");
+    };
+
+    fetchProfile();
+  }, [user, navigate]);
 
   const handleSaveProfile = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update local storage
-    const updatedUser = { ...user, name, email };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    
-    toast({
-      title: "Profile updated",
-      description: "Your profile information has been saved successfully.",
-    });
-    
-    setIsLoading(false);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          full_name: name,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been saved successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleNotificationChange = (key: string, value: boolean) => {
@@ -69,8 +94,8 @@ const Profile = () => {
     });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await signOut();
     toast({
       title: "Signed out",
       description: "You have been signed out successfully.",
@@ -119,12 +144,12 @@ const Profile = () => {
               <div className="flex items-center gap-4">
                 <Avatar className="w-16 h-16">
                   <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                    {user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                    {(profile?.full_name || user?.email || "U").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold text-foreground">{user.name}</h3>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <h3 className="font-semibold text-foreground">{profile?.full_name || "User"}</h3>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
 
