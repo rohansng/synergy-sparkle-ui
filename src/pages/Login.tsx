@@ -18,7 +18,7 @@ const Login = () => {
   const [name, setName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signUp, signIn } = useAuth();
+  const { signUp, signIn, user } = useAuth();
 
   useEffect(() => {
     if (user) {
